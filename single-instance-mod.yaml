@@ -4,6 +4,10 @@ Description: >-
   create an EC2 instace based of the Ubuntu Image,  Constrained to free-tier
   instances only
 Parameters:
+  InstanceName:
+    Description: What do we name this machine?
+    Type: String
+    Default: 'Webserver'
   KeyName:
     Description: Name of an existing EC2 KeyPair to enable SSH access to the instance
     Type: 'AWS::EC2::KeyPair::KeyName'
@@ -323,22 +327,29 @@ Resources:
           - AWSInstanceType2Arch
           - !Ref InstanceType
           - Arch
+      Tags:
+        - Key: 'Name'
+        - Value: !Ref InstanceName
   InstanceSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
-      GroupDescription: Enable SSH access via port 22
+      GroupDescription: SSH and HTTP access to server
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: '22'
           ToPort: '22'
           CidrIp: !Ref SSHLocation
         - IpProtocol: tcp
-          FromPort: '80'
-          ToPort: '80'
-          CidrIp: '0.0.0.0/0'
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: !Ref SSHLocation
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: !Ref SSHLocation
       Tags:
-        - Key: "Name"
-          Value: "WebDMZ"
+        - Key: 'Name'
+          Value: 'WebDMZ'
 Outputs:
   InstanceId:
     Description: InstanceId of the newly created EC2 instance

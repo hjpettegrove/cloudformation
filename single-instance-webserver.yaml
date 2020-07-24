@@ -314,21 +314,40 @@ Resources:
     Metadata:
       Comment: Install updates and apache after instance creation, creates default index page
       AWS::CloudFormation::Init:
-        config:
+        configSets:
+          default:
+            - install_base
+        install_base:
           packages:
-            :
-          groups:
-            :
-          users:
-            :
-          sources:
-            :
+            yum:
+              httpd: []
+              wget: []
           files:
-            :
-          commands:
-            :
+            # These files are needed for CloudFormation::Init to work
+            /etc/cfn/cfn-hup.conf:
+              content: !Sub |
+                [main]
+                stack=${AWS::StackId}
+                region=${AWS::Region}
+                interval=1
+            /etc/cfn/hooks.d/cfn-auto-reloader.conf:
+              content: !Sub |
+                [cfn-auto-reloader-hook]
+                triggers=post.update
+                path=Resources.Server.Metadata.AWS::CloudFormation::Init
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackId} --region ${AWS::Region} --resource Server
+                runas=root
+            /var/www/html/index.html:
+              content: !Sub |
+                <html>
+                <head><title>Testing Webserver up and running</title></head>
+                <body><h1>Welcome Cliud Gurus</h1></body>
+                </html>
           services:
-            :
+            sysvinit:
+              cfn-hup:
+                enabled: true
+                ensureRunning: true
     Properties:
       InstanceType: !Ref InstanceType
       SecurityGroups:
@@ -341,6 +360,24 @@ Resources:
           - AWSInstanceType2Arch
           - !Ref InstanceType
           - Arch
+      Tags:
+        - Key: name
+          Value: Webserver01
+      UserData: !Base64
+        'Fn::Join':
+          - ''
+          - - |
+              #!/bin/bash -xe
+            - |
+              # Install the files and packages from the metadata
+            - '/opt/aws/bin/cfn-init -v '
+            - '         --stack '
+            - !Ref 'AWS::StackName'
+            - '         --resource WebServerInstance '
+            - '         --configsets install_base '
+            - '         --region '
+            - !Ref 'AWS::Region'
+            - |+
   WebServerSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
