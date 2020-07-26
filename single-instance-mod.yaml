@@ -329,7 +329,7 @@ Resources:
           - Arch
       Tags:
         - Key: 'Name'
-        - Value: !Ref InstanceName
+          Value:  !Ref InstanceName
   InstanceSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
